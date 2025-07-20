@@ -12,8 +12,7 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
-
+  
     const { message, context, reviewId } = await request.json()
 
     const systemPrompt = `You are an expert code reviewer assistant. 
