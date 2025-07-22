@@ -1,5 +1,5 @@
 import { Queue, Worker } from 'bullmq'
-import { prisma } from '../db/client'
+import prisma  from '../db/client'
 import { analyzePullRequest } from '../ai/review-engine'
 import { GitHubAPI } from '../github/api'
 
@@ -77,7 +77,7 @@ const reviewWorker = new Worker('review-queue', async (job) => {
 
     return { success: true, reviewId: review.id }
 
-  } catch (error) {
+  } catch (error:any) {
     console.error('Review job failed:', error)
     
     // Save failed review
@@ -87,7 +87,7 @@ const reviewWorker = new Worker('review-queue', async (job) => {
         pullRequestNumber: data.pullRequestNumber,
         pullRequestId: data.pullRequestId,
         status: 'failed',
-        aiAnalysis: { error: error.message }
+        aiAnalysis: { error: error?.message }
       }
     })
 

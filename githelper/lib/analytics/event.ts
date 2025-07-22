@@ -1,5 +1,5 @@
 
-import { prisma } from '../db/client'
+import prisma  from '../db/client'
 import { redis } from '../cache/redis'
 import { logger } from '../utils/logger'
 
