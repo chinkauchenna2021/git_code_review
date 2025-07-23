@@ -322,9 +322,9 @@ export async function checkUsageLimits(userId: string): Promise<{
       currentPeriodEnd: user.subscription.currentPeriodEnd!,
       cancelAtPeriodEnd: user.subscription.cancelAtPeriodEnd,
       limits: {
-        reviews: user.subscription.limits.reviews,
-        repositories: user.subscription.limits.repositories,
-        teamMembers: user.subscription.limits.teamMembers
+        reviews: user.subscription.reviewsLimit,
+        repositories: user.subscription.repositoriesLimit,
+        teamMembers: user.subscription.teamMembersLimit
       },
       usage: {
         reviews: user.reviewsUsed,

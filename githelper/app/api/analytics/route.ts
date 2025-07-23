@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/payment/stripe'
-import { prisma } from '@/lib/db/client'
+import prisma  from '@/lib/db/client'
 import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -50,16 +50,16 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       update: {
         stripeSubscriptionId: session.subscription as string,
         stripeCustomerId: session.customer as string,
-        plan,
-        status: 'active',
+        plan:"FREE",
+        status: 'ACTIVE',
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
       },
       create: {
         userId,
         stripeSubscriptionId: session.subscription as string,
         stripeCustomerId: session.customer as string,
-        plan,
-        status: 'active',
+        plan:"FREE",
+        status: 'ACTIVE',
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       }
     })
@@ -89,6 +89,6 @@ async function handleSuccessfulRenewal(invoice: Stripe.Invoice) {
 async function handleCancelledSubscription(subscription: Stripe.Subscription) {
   await prisma.subscription.update({
     where: { stripeSubscriptionId: subscription.id },
-    data: { status: 'cancelled' }
+    data: { status: 'CANCELLED' }
   })
 }

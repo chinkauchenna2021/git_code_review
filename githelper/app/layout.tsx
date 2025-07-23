@@ -49,7 +49,7 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  manifest: "/manifest.json",
+  // manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon-16x16.png",

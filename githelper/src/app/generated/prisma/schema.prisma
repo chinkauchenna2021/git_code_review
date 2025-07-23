@@ -1,0 +1,982 @@
+// ===========================
+// DevTeams Copilot - Complete Prisma Schema
+// Enterprise-grade database design for AI-powered code review SaaS
+// ===========================
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/app/generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// generator client {
+//   provider = "prisma-client-js"
+//   output   = "../src/app/generated/prisma"
+//   binaryTargets = ["native", "debian-openssl-3.0.x"]
+// }
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ===========================
+// CORE USER MANAGEMENT
+// ===========================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  emailVerified  DateTime?
+  name           String?
+  image          String?
+  githubId       Int?      @unique
+  githubUsername String?   @unique
+
+  // Usage tracking
+  reviewsUsed        Int       @default(0)
+  lastReviewAt       DateTime?
+  emailNotifications Boolean   @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts        Account[]
+  sessions        Session[]
+  subscription    Subscription?
+  repositories    Repository[]
+  reviews         Review[]             @relation("ReviewOwner")
+  ownedTeams      Team[]               @relation("TeamOwner")
+  teamMemberships TeamMember[]
+  installations   GitHubInstallation[]
+  apiKeys         ApiKey[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+
+  @@index([email])
+  @@index([githubId])
+  @@index([githubUsername])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ===========================
+// SUBSCRIPTION & BILLING
+// ===========================
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Stripe integration
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId        String?
+
+  // Plan details
+  plan   Plan               @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+
+  // Billing periods
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
+
+  // Usage limits (cached for performance)
+  reviewsLimit      Int @default(50)
+  repositoriesLimit Int @default(1)
+  teamMembersLimit  Int @default(1)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+  usageRecords UsageRecord[]
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([plan])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id             String @id @default(cuid())
+  subscriptionId String
+
+  // Stripe data
+  stripeInvoiceId String        @unique
+  amountPaid      Int // Amount in cents
+  currency        String        @default("usd")
+  status          InvoiceStatus
+
+  // Invoice details
+  invoiceNumber String?
+  invoiceUrl    String?
+  paidAt        DateTime?
+  dueDate       DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([stripeInvoiceId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([paidAt])
+  @@map("invoices")
+}
+
+model UsageRecord {
+  id             String @id @default(cuid())
+  subscriptionId String
+
+  // Usage tracking
+  metric    UsageMetric
+  quantity  Int
+  timestamp DateTime    @default(now())
+
+  // Metadata
+  metadata Json?
+
+  // Relations
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, metric])
+  @@index([timestamp])
+  @@map("usage_records")
+}
+
+// ===========================
+// GITHUB INTEGRATION
+// ===========================
+
+model GitHubInstallation {
+  id     String @id @default(cuid())
+  userId String
+
+  // GitHub installation data
+  installationId Int         @unique
+  accountType    AccountType
+  accountLogin   String
+  accountId      Int?
+
+  // Installation status
+  isActive    Boolean   @default(true)
+  suspendedAt DateTime?
+  suspendedBy String? // GitHub or User
+
+  // Permissions
+  permissions         Json? // GitHub App permissions
+  repositorySelection String? // "all" or "selected"
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositories Repository[]
+
+  @@index([installationId])
+  @@index([userId])
+  @@index([accountLogin])
+  @@index([isActive])
+  @@map("github_installations")
+}
+
+model Repository {
+  id             String  @id @default(cuid())
+  ownerId        String
+  installationId String?
+
+  // GitHub repository data
+  githubId Int     @unique
+  name     String
+  fullName String  @unique
+  private  Boolean @default(false)
+
+  // Repository details
+  description   String?
+  language      String?
+  defaultBranch String  @default("main")
+
+  // DevTeams Copilot settings
+  isActive  Boolean @default(false)
+  webhookId String? // GitHub webhook ID
+
+  // AI Review settings
+  autoReview   Boolean  @default(true)
+  reviewRules  Json? // Custom review rules
+  excludePaths String[] // Paths to exclude from review
+  includePaths String[] // Paths to include in review
+
+  // Review thresholds
+  minimumScore         Float? @default(7.0)
+  autoCommentThreshold Float? @default(6.0)
+  blockMergeThreshold  Float? @default(4.0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner            User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  installation     GitHubInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  reviews          Review[]
+  pullRequests     PullRequest[]
+  teamRepositories TeamRepository[]
+
+  @@index([githubId])
+  @@index([ownerId])
+  @@index([fullName])
+  @@index([isActive])
+  @@index([language])
+  @@index([updatedAt])
+  @@map("repositories")
+}
+
+// ===========================
+// PULL REQUEST & REVIEW SYSTEM
+// ===========================
+
+model PullRequest {
+  id           String @id @default(cuid())
+  repositoryId String
+
+  // GitHub PR data
+  githubId Int
+  number   Int
+  title    String
+  body     String? @db.Text
+
+  // PR details
+  state          PullRequestState @default(OPEN)
+  isDraft        Boolean          @default(false)
+  mergeable      Boolean?
+  mergeableState String?
+
+  // Branch information
+  headBranch String
+  baseBranch String
+  headSha    String
+  baseSha    String
+
+  // GitHub user data
+  authorLogin String
+  authorId    Int
+
+  // File changes
+  additions    Int @default(0)
+  deletions    Int @default(0)
+  changedFiles Int @default(0)
+
+  // Timestamps
+  githubCreatedAt DateTime
+  githubUpdatedAt DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  reviews    Review[]
+  comments   Comment[]
+
+  @@unique([repositoryId, githubId])
+  @@unique([repositoryId, number])
+  @@index([repositoryId])
+  @@index([state])
+  @@index([authorLogin])
+  @@index([githubUpdatedAt])
+  @@map("pull_requests")
+}
+
+model Review {
+  id            String  @id @default(cuid())
+  repositoryId  String
+  pullRequestId String?
+  ownerId       String // User who owns the repository
+
+  // Review identification
+  pullRequestNumber   Int
+  pullRequestGithubId Int
+
+  // Review status
+  status ReviewStatus @default(PENDING)
+
+  // AI Analysis results
+  aiAnalysis   Json? // Complete AI analysis result
+  overallScore Float? // Cached score for queries
+  confidence   Float? // AI confidence level
+
+  // Review metadata
+  language      String? // Primary language detected
+  framework     String? // Framework detected
+  filesAnalyzed Int     @default(0)
+  linesOfCode   Int     @default(0)
+
+  // Processing info
+  processingTime Int? // Milliseconds
+  tokensUsed     Int? // AI tokens consumed
+  retryCount     Int     @default(0)
+  errorMessage   String?
+
+  // GitHub integration
+  commentPosted Boolean @default(false)
+  commentId     String? // GitHub comment ID
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  repository  Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  pullRequest PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: SetNull)
+  owner       User         @relation("ReviewOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  issues      Issue[]
+  suggestions Suggestion[]
+  comments    Comment[]
+
+  @@index([repositoryId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([overallScore])
+  @@index([createdAt])
+  @@index([pullRequestNumber, repositoryId])
+  @@map("reviews")
+}
+
+model Issue {
+  id       String @id @default(cuid())
+  reviewId String
+
+  // Issue details
+  type     IssueType
+  severity IssueSeverity
+  category IssueCategory
+
+  // Location
+  fileName     String
+  lineNumber   Int?
+  columnNumber Int?
+
+  // Issue description
+  title       String
+  description String  @db.Text
+  suggestion  String? @db.Text
+
+  // Code context
+  codeSnippet String? @db.Text
+
+  // CWE/CVE references for security issues
+  cweId String?
+  cveId String?
+
+  // Resolution
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([type])
+  @@index([severity])
+  @@index([category])
+  @@index([fileName])
+  @@map("issues")
+}
+
+model Suggestion {
+  id       String @id @default(cuid())
+  reviewId String
+
+  // Suggestion details
+  type     SuggestionType
+  priority SuggestionPriority
+
+  // Location
+  fileName   String?
+  lineNumber Int?
+
+  // Suggestion content
+  title       String
+  description String  @db.Text
+  example     String? @db.Text
+
+  // Implementation
+  isImplemented Boolean   @default(false)
+  implementedAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([type])
+  @@index([priority])
+  @@map("suggestions")
+}
+
+model Comment {
+  id            String  @id @default(cuid())
+  reviewId      String?
+  pullRequestId String?
+
+  // Comment details
+  type    CommentType
+  content String      @db.Text
+
+  // GitHub integration
+  githubCommentId String? @unique
+  isPosted        Boolean @default(false)
+
+  // Location (for inline comments)
+  fileName   String?
+  lineNumber Int?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  review      Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  pullRequest PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([pullRequestId])
+  @@index([githubCommentId])
+  @@map("comments")
+}
+
+// ===========================
+// TEAM COLLABORATION
+// ===========================
+
+model Team {
+  id      String @id @default(cuid())
+  ownerId String
+
+  // Team details
+  name        String
+  description String?
+  slug        String  @unique
+
+  // Team settings
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner        User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+  repositories TeamRepository[]
+  invitations  TeamInvitation[]
+
+  @@index([ownerId])
+  @@index([slug])
+  @@map("teams")
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  teamId String
+  userId String
+
+  // Role and permissions
+  role TeamRole @default(MEMBER)
+
+  // Timestamps
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model TeamRepository {
+  id           String @id @default(cuid())
+  teamId       String
+  repositoryId String
+
+  // Permissions
+  canReview Boolean @default(true)
+  canAdmin  Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, repositoryId])
+  @@index([teamId])
+  @@index([repositoryId])
+  @@map("team_repositories")
+}
+
+model TeamInvitation {
+  id     String @id @default(cuid())
+  teamId String
+
+  // Invitation details
+  email  String
+  role   TeamRole         @default(MEMBER)
+  token  String           @unique
+  status InvitationStatus @default(PENDING)
+
+  // Invitation metadata
+  invitedBy String
+  expiresAt DateTime
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@map("team_invitations")
+}
+
+// ===========================
+// API & INTEGRATION
+// ===========================
+
+model ApiKey {
+  id     String @id @default(cuid())
+  userId String
+
+  // API key details
+  name       String
+  keyHash    String @unique
+  keyPreview String // Last 4 characters for display
+
+  // Permissions and limits
+  scopes    ApiScope[]
+  rateLimit Int        @default(1000) // Requests per hour
+
+  // Usage tracking
+  lastUsedAt DateTime?
+  usageCount Int       @default(0)
+
+  // Status
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyHash])
+  @@index([isActive])
+  @@map("api_keys")
+}
+
+model Webhook {
+  id     String @id @default(cuid())
+  userId String
+
+  // Webhook details
+  url    String
+  secret String?
+  events WebhookEvent[]
+
+  // Status
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+
+  // Retry settings
+  retryCount Int @default(3)
+  timeout    Int @default(30) // seconds
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id        String @id @default(cuid())
+  webhookId String
+
+  // Delivery details
+  event   WebhookEvent
+  payload Json
+
+  // HTTP details
+  requestUrl      String
+  requestHeaders  Json?
+  responseStatus  Int?
+  responseHeaders Json?
+  responseBody    String?
+
+  // Retry information
+  attempts     Int            @default(1)
+  status       DeliveryStatus @default(PENDING)
+  errorMessage String?
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  // Relations
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+// ===========================
+// SYSTEM & MONITORING
+// ===========================
+
+model AuditLog {
+  id     String  @id @default(cuid())
+  userId String?
+
+  // Event details
+  action   AuditAction
+  entity   AuditEntity
+  entityId String?
+
+  // Event data
+  oldValues Json?
+  newValues Json?
+  metadata  Json?
+
+  // Request context
+  ipAddress String?
+  userAgent String?
+  requestId String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+
+  // Notification details
+  type    NotificationType
+  title   String
+  message String           @db.Text
+
+  // Notification data
+  data Json?
+
+  // Status
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  // Delivery channels
+  channels NotificationChannel[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model SystemMetric {
+  id String @id @default(cuid())
+
+  // Metric details
+  name  String
+  value Float
+  unit  String?
+  tags  Json?
+
+  // Timestamp
+  timestamp DateTime @default(now())
+
+  @@index([name])
+  @@index([timestamp])
+  @@map("system_metrics")
+}
+
+// ===========================
+// ENUMS
+// ===========================
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  UNPAID
+  INCOMPLETE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  UNCOLLECTIBLE
+  VOID
+}
+
+enum UsageMetric {
+  REVIEWS
+  API_CALLS
+  TEAM_MEMBERS
+  REPOSITORIES
+}
+
+enum AccountType {
+  USER
+  ORGANIZATION
+}
+
+enum PullRequestState {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum ReviewStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum IssueType {
+  BUG
+  SECURITY
+  PERFORMANCE
+  STYLE
+  MAINTAINABILITY
+  DOCUMENTATION
+  TESTING
+}
+
+enum IssueSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum IssueCategory {
+  CODE_QUALITY
+  SECURITY_VULNERABILITY
+  PERFORMANCE_ISSUE
+  STYLE_VIOLATION
+  BEST_PRACTICE
+  DOCUMENTATION
+  TEST_COVERAGE
+}
+
+enum SuggestionType {
+  IMPROVEMENT
+  OPTIMIZATION
+  REFACTOR
+  PATTERN
+  LIBRARY
+}
+
+enum SuggestionPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum CommentType {
+  GENERAL
+  INLINE
+  SUGGESTION
+  ISSUE
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum ApiScope {
+  READ_REPOSITORIES
+  WRITE_REPOSITORIES
+  READ_REVIEWS
+  WRITE_REVIEWS
+  READ_ANALYTICS
+  ADMIN
+}
+
+enum WebhookEvent {
+  REVIEW_CREATED
+  REVIEW_COMPLETED
+  REVIEW_FAILED
+  ISSUE_FOUND
+  SUBSCRIPTION_UPDATED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  RETRY
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  INVITE
+  ACCEPT
+  DECLINE
+}
+
+enum AuditEntity {
+  USER
+  REPOSITORY
+  REVIEW
+  TEAM
+  SUBSCRIPTION
+  API_KEY
+  WEBHOOK
+}
+
+enum NotificationType {
+  REVIEW_COMPLETED
+  CRITICAL_ISSUE_FOUND
+  SUBSCRIPTION_EXPIRING
+  TEAM_INVITATION
+  SYSTEM_ALERT
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  WEBHOOK
+  SLACK
+}

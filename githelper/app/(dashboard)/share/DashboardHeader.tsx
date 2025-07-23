@@ -5,7 +5,7 @@ import { UserMenu } from '@/components/auth/UserMenu'
 import { Bell, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-
+ 
 interface DashboardHeaderProps {
   title?: string
   subtitle?: string

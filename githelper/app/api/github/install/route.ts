@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { prisma } from '@/lib/db/client'
+import  prisma  from '@/lib/db/client'
 import { Octokit } from '@octokit/rest'
 import { createAppAuth } from '@octokit/auth-app'
+import { AccountType } from '@/src/app/generated/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,19 +48,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Save installation to database
-    const savedInstallation = await prisma.githubInstallation.upsert({
+    const savedInstallation = await prisma.gitHubInstallation.upsert({
       where: { installationId: parseInt(installationId) },
       update: {
         userId: user.id,
-        accountType: installation.account?.type || 'User',
-        accountLogin: installation.account?.login || '',
+        accountType: AccountType.USER,
+        accountLogin: installation.account?.name || '',
         updatedAt: new Date()
       },
       create: {
         installationId: parseInt(installationId),
         userId: user.id,
-        accountType: installation.account?.type || 'User',
-        accountLogin: installation.account?.login || '',
+        accountType: AccountType.USER,
+        accountLogin: installation.account?.name  as any || '',
         createdAt: new Date()
       }
     })
