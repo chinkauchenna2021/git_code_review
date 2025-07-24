@@ -1,5 +1,6 @@
+import { queueReviewJob } from '../queue/jobs'
 import { GitHubAPI } from './api'
-import { prisma } from '@/lib/db/client'
+import  prisma from '@/lib/db/client'
 
 export async function setupWebhook(accessToken: string, fullName: string) {
   const [owner, repo] = fullName.split('/')

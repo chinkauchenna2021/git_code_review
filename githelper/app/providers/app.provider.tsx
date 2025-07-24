@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
+import {HeroUIProvider} from "@heroui/react";
 
 import { useAppStore } from '@/store/slices'
 import { wsManager } from '@/store/websocket'
@@ -44,6 +45,7 @@ export function AppProvider({ children, session }: AppProviderProps) {
   return (
     <SessionProvider session={session}>
       <QueryClientProvider client={queryClient}>
+        <HeroUIProvider>
         {/* <ThemeProvider> */}
           {children}
           <Toaster 
@@ -53,6 +55,7 @@ export function AppProvider({ children, session }: AppProviderProps) {
             }}
           />
         {/* </ThemeProvider> */}
+        </HeroUIProvider>
       </QueryClientProvider>
     </SessionProvider>
   )

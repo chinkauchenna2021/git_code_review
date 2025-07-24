@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthForm } from '@/lib/hooks/use-auth'
-import { Card } from '@/components/ui/Card'
+// import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { handleAuthError } from '@/lib/auth/utils'
 import { Github, Zap, Shield, BarChart3 } from 'lucide-react'
+import { signIn } from 'next-auth/react'
+import { Button as HeroButton  , Card , CardHeader , CardBody , CardFooter} from '@heroui/react'
 
 export function LoginForm() {
   const router = useRouter()
@@ -32,10 +34,12 @@ export function LoginForm() {
     }
   }, [error])
 
-  const handleSignIn = () => {
-    clearError()
-    setAuthError(null)
-    signInWithGitHub({ callbackUrl })
+  function handlegitlogin(){
+    console.log('Signing in with GitHub...')
+    // clearError()
+    // setAuthError(null)
+    // signIn('github')
+    // signInWithGitHub({callbackUrl})
   }
 
   const features = [
@@ -57,6 +61,7 @@ export function LoginForm() {
   ]
 
   return (
+   <Suspense fallback={<div className="flex items-center justify-center h-screen"><LoadingSpinner /></div>}>
     <div className="min-h-screen flex">
       {/* Left side - Login Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
@@ -74,20 +79,22 @@ export function LoginForm() {
               AI-powered code reviews for your development team
             </p>
           </div>
-
           <Card className="p-8">
-            <div className="space-y-6">
+
+              <CardBody>
               {(authError || error) && (
                 <Alert variant="error" dismissible onDismiss={() => setAuthError(null)}>
                   {authError || error}
                 </Alert>
               )}
-
-              <Button
-                onClick={handleSignIn}
-                disabled={isLoading}
-                className="w-full"
+              <HeroButton
+                onPress={handlegitlogin}
+                // disabled={isLoading}
                 size="lg"
+                variant='solid'
+                isLoading={isLoading}
+                color="default"
+                className="flex items-center justify-center space-x-3 bg-black text-white hover:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg px-4 py-2 w-full"
               >
                 {isLoading ? (
                   <LoadingSpinner size="sm" color="white" />
@@ -97,8 +104,9 @@ export function LoginForm() {
                     Continue with GitHub
                   </>
                 )}
-              </Button>
-
+              </HeroButton>
+              </CardBody>
+               <CardFooter className="text-center mt-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">
                   By signing in, you agree to our{' '}
@@ -111,7 +119,7 @@ export function LoginForm() {
                   </a>
                 </p>
               </div>
-            </div>
+              </CardFooter>
           </Card>
 
           <div className="text-center">
@@ -156,5 +164,6 @@ export function LoginForm() {
         </div>
       </div>
     </div>
+  </Suspense>
   )
 }

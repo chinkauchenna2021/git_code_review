@@ -1,6 +1,6 @@
 
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
 // Import all slices
@@ -109,8 +109,3 @@ export const useAppStore = create<AppState>()(
 )
 
 export { createRepositoriesSlice }
-
-function subscribeWithSelector(arg0: any): any {
-  throw new Error('Function not implemented.')
-}
-

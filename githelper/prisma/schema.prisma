@@ -5,8 +5,8 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/app/generated/prisma"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  // output   = "../src/app/generated/prisma"
+  // binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 // datasource db {
@@ -525,9 +525,9 @@ model Team {
   ownerId      String
   
   // Team details
-  name         String
+  name         String?
   description  String?
-  slug         String   @unique
+  slug         String?   @unique
   
   // Team settings
   isActive     Boolean  @default(true)
@@ -537,7 +537,7 @@ model Team {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  owner        User     @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User?     @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      TeamMember[]
   repositories TeamRepository[]
   invitations  TeamInvitation[]

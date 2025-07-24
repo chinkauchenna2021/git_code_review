@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { prisma } from '@/lib/db/client'
+import prisma  from '@/lib/db/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     ])
 
     return NextResponse.json({
-      reviews: reviews.map(review => ({
+      reviews: reviews.map((review:any) => ({
         id: review.id,
         pullRequestNumber: review.pullRequestNumber,
         pullRequestId: review.pullRequestId,

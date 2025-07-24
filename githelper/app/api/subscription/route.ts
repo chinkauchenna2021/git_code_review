@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { stripe } from '@/lib/payment/stripe'
-import { prisma } from '@/lib/db/client'
+import  prisma  from '@/lib/db/client'
 
 export async function GET() {
   try {
@@ -19,7 +19,7 @@ export async function GET() {
       subscription: user?.subscription || null,
       usage: {
         reviewsUsed: user?.reviewsUsed || 0,
-        reviewsLimit: user?.subscription?.plan === 'pro' ? 500 : 50,
+        reviewsLimit: user?.subscription?.plan ? 500 : 50,
         repositoriesActive: await prisma.repository.count({
           where: { ownerId: user?.id, isActive: true }
         })

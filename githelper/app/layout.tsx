@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/config";
-import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
+import { AppProvider } from "./providers/app.provider";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,11 +51,11 @@ export const metadata: Metadata = {
     },
   },
   // manifest: "/manifest.json",
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
-  },
+  // icons: {
+  //   icon: "/favicon.ico",
+  //   shortcut: "/favicon-16x16.png",
+  //   apple: "/apple-touch-icon.png",
+  // },
 };
 
 export default async function RootLayout({
@@ -69,9 +70,9 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider session={session}>
+       <AppProvider session={session}>
           {children}
-        </AuthProvider>
+       </AppProvider>
       </body>
     </html>
   );

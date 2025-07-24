@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { prisma } from '@/lib/db/client'
+import prisma  from '@/lib/db/client'
 
 export async function GET() {
   try {
@@ -65,9 +65,9 @@ export async function POST(request: NextRequest) {
 
     const team = await prisma.team.create({
       data: {
-        name,
-        description,
-        ownerId: user.id
+        name:name as any,
+        description: description as any,
+        ownerId: user.id as any,
       }
     })
 

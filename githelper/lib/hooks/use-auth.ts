@@ -1,3 +1,4 @@
+'use client'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -228,6 +229,7 @@ export function useGitHubIntegration(): {
 export function useAuthForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
   const router = useRouter()
 
   const signInWithGitHub = useCallback(async (options?: { callbackUrl?: string }) => {
