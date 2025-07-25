@@ -6,6 +6,7 @@ import { JWT } from 'next-auth/jwt'
 // ===========================
 
 export interface ExtendedUser extends DefaultUser {
+  email: any
   id: string
   githubId?: number
   githubUsername?: string

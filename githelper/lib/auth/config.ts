@@ -1,34 +1,13 @@
-import { NextAuthOptions } from 'next-auth'
+import NextAuth from 'next-auth';
+import GitHubProvider from '@/app/providers/auth/github'; 
+import { prisma } from '@/lib/db/client';
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import GitHubProvider from 'next-auth/providers/github'
-import  prisma  from '@/lib/db/client'
-// import { logger } from '@/lib/utils/logger'
+import { NextAuthConfig } from 'next-auth'
 
-export const authOptions: NextAuthOptions = {
+
+export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET as string,
   adapter: PrismaAdapter(prisma),
-  providers: [
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "read:user user:email repo admin:repo_hook read:org"
-        }
-      },
-      profile(profile) {
-        return {
-          id: profile.id!,
-          name: profile.name || profile.login,
-          email: profile.email,
-          image: profile.avatar_url,
-          githubId: profile.id,
-          githubUsername: profile.login,
-        }
-      }
-    })
-  ],
-  
   session: { 
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
@@ -38,9 +17,11 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
     error: '/auth/error',
   },
-  
+  providers: [
+    GitHubProvider
+  ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+        async signIn({ user, account, profile }) {
       try {
         if (account?.provider === 'github' && profile) {
           const githubProfile = profile as any
@@ -75,18 +56,28 @@ export const authOptions: NextAuthOptions = {
         token.githubAccessToken = account.access_token
         token.githubId = (profile as any)?.id
         token.githubUsername = (profile as any)?.login
+        token.email = (profile as any)?.email || token.email
       }
       return token
     },
 
-    async session({ session, token }) {
+    async session({ session, token , user }) {
       if (token) {
         session.user.id = token.sub!
         session.githubAccessToken = token.githubAccessToken as string
         session.githubId = token.githubId as number
         session.githubUsername = token.githubUsername as string
+        session.user.email = user.email || (token.email as string)
       }
       return session
     }
   },
-}
+  events: {
+    async createUser({ user }) {
+      // Send welcome email or perform post-registration actions
+    },
+  },
+  debug: process.env.NODE_ENV === "development",
+} satisfies NextAuthConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);

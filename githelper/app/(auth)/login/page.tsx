@@ -1,7 +1,7 @@
 'use client'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth/config'
-import { LoginForm } from '@/components/auth/LoginForm'
+import LoginForm  from '@/components/auth/LoginForm'
 import { getSession } from 'next-auth/react'
 import { Suspense, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'

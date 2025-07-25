@@ -239,7 +239,7 @@ export function useAuthForm() {
     try {
       const result = await signIn('github', {
         callbackUrl: options?.callbackUrl || '/dashboard',
-        redirect: false
+        redirect: true
       })
 
       if (result?.error) {

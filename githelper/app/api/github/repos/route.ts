@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { Octokit } from '@octokit/rest'
 import  prisma  from '@/lib/db/client'
+import { auth } from '@/lib/auth/config'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await auth()
     if (!session?.githubAccessToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Sync with database
     const user = await prisma.user.findUnique({
-      where: { email: session.user?.email! }
+      where: { email: session.user?.email }
     })
 
     if (user) {
