@@ -5,6 +5,7 @@ import {LoginForm}  from '@/components/auth/LoginForm'
 import { getSession } from 'next-auth/react'
 import { Suspense, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { SignInForm } from '@/components/auth/BetterSignInForm'
 
 
 
@@ -26,7 +27,7 @@ export default  function LoginPage() {
 
   return(
     <Suspense fallback={<div className="flex items-center justify-center h-screen"><LoadingSpinner /></div>}>
-      <LoginForm />
+     <SignInForm />
      </Suspense>
   ) 
 

@@ -1,6 +1,6 @@
 // lib/auth/utils.ts
 import { headers } from "next/headers"
-import { auth } from "./config"
+import { auth } from "./better-config"
 import { prisma } from "@/lib/db/client"
 import { logger } from "@/lib/utils/logger"
 import type {
@@ -11,7 +11,7 @@ import type {
   TokenValidation,
   AuthError,
   OrganizationMembership,
-} from "./types"
+} from "@/types/auth/better-auth.type"
 
 // ===========================
 // SERVER-SIDE AUTH UTILITIES
@@ -48,7 +48,7 @@ export async function requireAuth() {
 /**
  * Get enhanced user data with permissions and subscription
  */
-export async function getServerUser(): Promise<ExtendedUser | null> {
+export async function getServerUser(): Promise<ExtendedUser | null | any> {
   const session = await getServerSession()
   
   if (!session?.user?.id) {
@@ -119,7 +119,7 @@ export async function getServerUser(): Promise<ExtendedUser | null> {
           memberCount: membership.organization._count.members,
         }
       })),
-    } as ExtendedUser
+    } as unknown as ExtendedUser
   } catch (error) {
     logger.error("Failed to get server user", error as Error)
     return null
@@ -248,14 +248,14 @@ export async function getUserStats(userId: string) {
   try {
     const [repositories, reviews, thisMonthReviews] = await Promise.all([
       prisma.repository.count({
-        where: { userId }
+        where: { id: userId }
       }),
       prisma.review.count({
-        where: { userId }
+        where: { id: userId }
       }),
       prisma.review.count({
         where: {
-          userId,
+          id: userId,
           createdAt: {
             gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
           }
@@ -265,9 +265,9 @@ export async function getUserStats(userId: string) {
 
     // Calculate average review time and other metrics
     const reviewMetrics = await prisma.review.aggregate({
-      where: { userId },
+      where: { id:userId },
       _avg: {
-        completionTime: true,
+        processingTime: true,
       },
       _count: {
         id: true,
@@ -278,7 +278,7 @@ export async function getUserStats(userId: string) {
       activeRepositories: repositories,
       totalReviews: reviews,
       reviewsThisMonth: thisMonthReviews,
-      averageReviewTime: reviewMetrics._avg.completionTime || 0,
+      averageReviewTime: reviewMetrics._avg?.processingTime || 0,
       issuesFound: 0, // TODO: Calculate from review results
       issuesFixed: 0, // TODO: Calculate from review results
       codeQualityScore: 85, // TODO: Calculate based on review metrics

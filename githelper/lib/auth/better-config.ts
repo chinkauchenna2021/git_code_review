@@ -2,7 +2,6 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { nextCookies } from "better-auth/next-js"
-import { oauth2 } from "better-auth/plugins/oauth2"
 import { organization } from "better-auth/plugins/organization"
 import { twoFactor } from "better-auth/plugins/two-factor"
 import { admin } from "better-auth/plugins/admin"
@@ -23,7 +22,6 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql", // or "mysql", "sqlite"
   }),
-
   // Email configuration (optional)
   emailAndPassword: {
     enabled: true,
@@ -31,10 +29,6 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       // Implement your email sending logic here
       logger.info(`Reset password email for ${user.email}: ${url}`)
-    },
-    sendVerificationEmail: async ({ user, url }) => {
-      // Implement your email verification logic here
-      logger.info(`Verification email for ${user.email}: ${url}`)
     },
   },
 
@@ -80,13 +74,12 @@ export const auth = betterAuth({
   // Plugins
   plugins: [
     // OAuth2 plugin for additional providers
-    oauth2(),
     
     // Organization plugin for team management
     organization({
       allowUserToCreateOrganization: true,
       organizationLimit: 5,
-      sendInvitationEmail: async ({ email, organization, inviter, inviteLink }) => {
+      sendInvitationEmail: async ({ email, organization }) => {
         // Implement your invitation email logic here
         logger.info(`Invitation email sent to ${email} for ${organization.name}`)
       },
@@ -97,8 +90,7 @@ export const auth = betterAuth({
       issuer: "DevTeams Copilot",
       totpOptions: {
         period: 30,
-        digits: 6,
-        algorithm: "sha1",
+        digits: 6
       },
     }),
 
@@ -132,75 +124,14 @@ export const auth = betterAuth({
   },
 
   // Hooks for custom logic
-  hooks: {
-    after: [
-      {
-        matcher(context) {
-          return context.path === "/sign-up" && context.method === "POST"
-        },
-        handler: async (ctx) => {
-          // Custom logic after user signs up
-          const { user } = ctx.context
-          if (user) {
-            logger.info(`New user registered: ${user.email}`)
-            
-            // Initialize user preferences, create default repositories, etc.
-            try {
-              await prisma.userPreferences.create({
-                data: {
-                  userId: user.id,
-                  theme: "system",
-                  emailNotifications: true,
-                  reviewReminders: true,
-                },
-              })
-            } catch (error) {
-              logger.error("Failed to create user preferences", error)
-            }
-          }
-        },
-      },
-      {
-        matcher(context) {
-          return context.path === "/sign-in" && context.method === "POST"
-        },
-        handler: async (ctx) => {
-          // Update last login time
-          const { user } = ctx.context
-          if (user) {
-            try {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { lastLoginAt: new Date() },
-              })
-            } catch (error) {
-              logger.error("Failed to update last login", error)
-            }
-          }
-        },
-      },
-    ],
-    before: [
-      {
-        matcher(context) {
-          return context.path.startsWith("/api/") && context.method !== "GET"
-        },
-        handler: async (ctx) => {
-          // Rate limiting for API endpoints
-          const ip = ctx.request.headers.get("x-forwarded-for") || "unknown"
-          logger.debug(`API request from ${ip}: ${ctx.path}`)
-        },
-      },
-    ],
-  },
 
   // Custom pages (optional)
   pages: {
-    signIn: "/auth/signin",
-    signUp: "/auth/signup",
-    resetPassword: "/auth/reset-password",
-    verifyEmail: "/auth/verify-email",
-    error: "/auth/error",
+    signIn: "/login",
+    // signUp: "/auth/signup",
+    // resetPassword: "/auth/reset-password",
+    // verifyEmail: "/auth/verify-email",
+    // error: "/auth/error",
   },
 
   // CSRF protection
