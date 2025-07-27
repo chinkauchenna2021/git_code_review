@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
-import { SessionProvider } from 'next-auth/react'
+import { SessionProvider , getSession} from 'next-auth/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import {HeroUIProvider} from "@heroui/react";
 
 import { useAppStore } from '@/store/slices'
 import { wsManager } from '@/store/websocket'
+import { Session } from 'next-auth'
 // import { ThemeProvider } from './theme.provider'
 
 const queryClient = new QueryClient({
@@ -21,33 +22,18 @@ const queryClient = new QueryClient({
 
 interface AppProviderProps {
   children: React.ReactNode
-  session?: any
 }
 
-export function AppProvider({ children, session }: AppProviderProps) {
-  const { user, initializeApp, isAuthenticated } = useAppStore()
-
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      // Initialize the app
-      initializeApp()
-      
-      // Connect WebSocket
-      wsManager.connect(user.id)
-    }
-
-    // Cleanup on unmount
-    return () => {
-      wsManager.disconnect()
-    }
-  }, [isAuthenticated, user, initializeApp])
-
+export function AppProvider({ children}: AppProviderProps) {
+  // const { user, initializeApp, isAuthenticated } = useAppStore()
+  const session = getSession()
   return (
-    <SessionProvider session={session}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
         <HeroUIProvider>
         {/* <ThemeProvider> */}
+        <SessionProvider session={session as any}>
           {children}
+        </SessionProvider>
           <Toaster 
             position="top-right"
             toastOptions={{
@@ -57,6 +43,5 @@ export function AppProvider({ children, session }: AppProviderProps) {
         {/* </ThemeProvider> */}
         </HeroUIProvider>
       </QueryClientProvider>
-    </SessionProvider>
   )
 }

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { auth } from '@/lib/auth/config'
 import { analyzePullRequest } from '@/lib/ai/review-engine'
 import { prisma } from '@/lib/db/client'
+import { InputJsonValue } from '@prisma/client/runtime/library'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await auth()
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -52,9 +53,9 @@ export async function POST(request: NextRequest) {
         repositoryId: repository.id,
         pullRequestNumber,
         pullRequestId: prData.id,
-        status: 'completed',
-        aiAnalysis: analysis,
-        createdAt: new Date()
+        pullRequestGithubId: prData.githubId,
+        status: 'COMPLETED',
+        ownerId: user!.id,
       }
     })
 

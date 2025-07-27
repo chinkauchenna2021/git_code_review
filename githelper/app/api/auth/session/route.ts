@@ -1,17 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getAuthSession, getSessionUser } from '@/lib/auth/utils'
-import { logger } from '@/lib/utils/logger'
+// app/api/auth/session/route.ts
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession, getServerUser } from "@/lib/auth/utils"
+import { logger } from "@/lib/utils/logger"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getAuthSession()
+    const session = await getServerSession()
     
     if (!session) {
       return NextResponse.json({ session: null }, { status: 200 })
     }
 
     // Get enhanced user data
-    const user = await getSessionUser()
+    const user = await getServerUser()
     
     return NextResponse.json({
       session: {
@@ -20,9 +21,9 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    logger.error('Session API error', error as Error)
+    logger.error("Session API error", error as Error)
     return NextResponse.json(
-      { error: 'Failed to get session' },
+      { error: "Failed to get session" },
       { status: 500 }
     )
   }

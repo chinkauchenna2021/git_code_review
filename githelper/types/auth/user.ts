@@ -20,4 +20,5 @@ type UserResponseType = {
   sub_id: string;
 };
 
+
 export type { UserType, UserResponseType };

@@ -12,16 +12,19 @@ export const authOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
   },
-  
-  pages: {
+   pages: {
     signIn: '/login',
-    error: '/auth/error',
   },
+  
+  // pages: {
+  //   signIn: '/(auth)/login',
+  //   error: '/auth/error',
+  // },
   providers: [
     GitHubProvider
   ],
   callbacks: {
-        async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }) {
       try {
         if (account?.provider === 'github' && profile) {
           const githubProfile = profile as any

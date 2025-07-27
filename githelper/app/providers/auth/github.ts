@@ -2,8 +2,8 @@ import GitHubProvider from "next-auth/providers/github";
 
 export default GitHubProvider({
     clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      authorization: {
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    authorization: {
         params: {
           scope: "read:user user:email repo admin:repo_hook read:org"
         }

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+import crypto from 'crypto'
 import { authOptions } from './config'
-import  prisma  from '@/lib/db/client'
+import  {prisma}  from '@/lib/db/client'
 import { logger } from '@/lib/utils/logger'
 import { 
   ServerAuthSession, 
@@ -10,6 +10,8 @@ import {
   UserSubscription,
   ExtendedUser 
 } from '@/types/auth'
+import { getSession } from 'next-auth/react'
+// import { getSession } from 'next-auth/react'
 
 // ===========================
 // SERVER-SIDE AUTH UTILITIES
@@ -94,7 +96,7 @@ if (typeof setInterval !== 'undefined') {
  
 export async function getAuthSession(): Promise<ServerAuthSession | null> {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     return session as ServerAuthSession | null
   } catch (error) {
     logger.error('Failed to get server session', error as Error)
@@ -118,13 +120,13 @@ export async function requireAuth(): Promise<ServerAuthSession> {
 /**
  * Get user from session with database sync
  */
-export async function getSessionUser(): Promise<ExtendedUser | null> {
+export async function getSessionUser(session: ServerAuthSession): Promise<ExtendedUser | null | any> {
   try {
-    const session = await getAuthSession()
+    // const session = await getAuthSession()
     if (!session?.user?.id) return null
 
     // Get fresh user data from database
-    const dbUser = await prisma.user.findUnique({
+    const dbUser:any = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
         subscription: true,
@@ -143,8 +145,9 @@ export async function getSessionUser(): Promise<ExtendedUser | null> {
     }
 
     return {
+      dbUser,
       id: dbUser.id,
-      name: dbUser.name,
+      name: String(dbUser?.name) ||  dbUser.githubUsername || "GitHub User",
       email: dbUser.email,
       image: dbUser.image,
       githubId: dbUser.githubId || undefined,
@@ -278,7 +281,8 @@ export function getUserPermissions(subscription?: UserSubscription): UserPermiss
  */
 export async function hasPermission(permission: keyof UserPermissions): Promise<boolean> {
   try {
-    const user = await getSessionUser()
+    const session = await getAuthSession()
+    const user = await getSessionUser(session as ServerAuthSession)
     if (!user) return false
 
     const permissions = getUserPermissions(user.subscription as any)
@@ -555,7 +559,7 @@ export function handleAuthError(error: string): { type: string; message: string 
 /**
  * Generate secure state parameter for OAuth
  */
+
 export function generateOAuthState(): string {
   return Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url')
 }
-

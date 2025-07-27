@@ -1,24 +1,11 @@
 // ===========================
-// DevTeams Copilot - Complete Prisma Schema
+// DevTeams Copilot - Complete Prisma Schema with Better-Auth
 // Enterprise-grade database design for AI-powered code review SaaS
 // ===========================
 
 generator client {
   provider = "prisma-client-js"
-  // output   = "../src/app/generated/prisma"
-  // binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
-
-// datasource db {
-//   provider = "postgresql"
-//   url      = env("DATABASE_URL")
-// }
-
-// generator client {
-//   provider = "prisma-client-js"
-//   output   = "../src/app/generated/prisma"
-//   binaryTargets = ["native", "debian-openssl-3.0.x"]
-// }
 
 datasource db {
   provider = "postgresql"
@@ -26,10 +13,56 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ===========================
+// BETTER-AUTH CORE TABLES
+// ===========================
 
-// ===========================
-// CORE USER MANAGEMENT
-// ===========================
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  name              String?
+  image             String?
+  
+  // GitHub integration
+  githubId          Int?      @unique
+  githubUsername    String?   @unique
+  
+  // Better-Auth specific fields
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Usage tracking
+  reviewsUsed       Int       @default(0)
+  lastReviewAt      DateTime?
+  lastLoginAt       DateTime?
+  emailNotifications Boolean  @default(true)
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  subscription      Subscription?
+  repositories      Repository[]
+  reviews           Review[]       @relation("ReviewOwner")
+  ownedTeams        Team[]         @relation("TeamOwner")
+  teamMemberships   TeamMember[]
+  installations     GitHubInstallation[]
+  apiKeys           ApiKey[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  
+  // Better-Auth relations
+  authenticators    Authenticator[]
+  preferences       UserPreferences?
+  organizationMemberships OrganizationMembership[]
+  ownedOrganizations      Organization[] @relation("OrganizationOwner")
+
+  @@index([email])
+  @@index([githubId])
+  @@index([githubUsername])
+  @@index([createdAt])
+  @@map("user")
+}
 
 model Account {
   id                String  @id @default(cuid())
@@ -44,12 +77,16 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+  
+  // Better-Auth specific fields
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
-  @@map("accounts")
+  @@map("account")
 }
 
 model Session {
@@ -57,49 +94,15 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  
+  // Better-Auth specific fields
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("sessions")
-}
-
-model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  emailVerified     DateTime?
-  name              String?
-  image             String?
-  githubId          Int?      @unique
-  githubUsername    String?   @unique
-  
-  // Usage tracking
-  reviewsUsed       Int       @default(0)
-  lastReviewAt      DateTime?
-  emailNotifications Boolean  @default(true)
-  
-  // Timestamps
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  // Relations
-  accounts          Account[]
-  sessions          Session[]
-  subscription      Subscription?
-  repositories      Repository[]
-  reviews           Review[]       @relation("ReviewOwner")
-  ownedTeams        Team[]         @relation("TeamOwner")
-  teamMemberships   TeamMember[]
-  installations     GitHubInstallation[]
-  apiKeys           ApiKey[]
-  auditLogs         AuditLog[]
-  notifications     Notification[]
-
-  @@index([email])
-  @@index([githubId])
-  @@index([githubUsername])
-  @@index([createdAt])
-  @@map("users")
-  Authenticator Authenticator[]
+  @@map("session")
 }
 
 model VerificationToken {
@@ -108,11 +111,133 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map("verification_tokens")
+  @@map("verificationToken")
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([userId, credentialID])
+  @@map("authenticator")
 }
 
 // ===========================
-// SUBSCRIPTION & BILLING
+// BETTER-AUTH ORGANIZATION SUPPORT
+// ===========================
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  ownerId     String
+  
+  // Organization settings
+  plan        Plan     @default(FREE)
+  isActive    Boolean  @default(true)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  owner       User                     @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     OrganizationMembership[]
+  invitations OrganizationInvitation[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@map("organization")
+}
+
+model OrganizationMembership {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(MEMBER)
+  
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organizationMembership")
+}
+
+model OrganizationInvitation {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  role           OrganizationRole @default(MEMBER)
+  invitedById    String
+  token          String   @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@map("organizationInvitation")
+}
+
+// ===========================
+// USER PREFERENCES & SETTINGS
+// ===========================
+
+model UserPreferences {
+  id                    String  @id @default(cuid())
+  userId                String  @unique
+  
+  // UI Preferences
+  theme                 Theme   @default(SYSTEM)
+  language              String  @default("en")
+  timezone              String?
+  
+  // Notification Preferences
+  emailNotifications    Boolean @default(true)
+  reviewReminders       Boolean @default(true)
+  webhookNotifications  Boolean @default(false)
+  slackNotifications    Boolean @default(false)
+  
+  // Review Preferences
+  defaultReviewSettings Json?   // JSON object for complex settings
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("userPreferences")
+}
+
+// ===========================
+// SUBSCRIPTION & BILLING (Updated for Better-Auth)
 // ===========================
 
 model Subscription {
@@ -133,11 +258,16 @@ model Subscription {
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean  @default(false)
   canceledAt           DateTime?
+  trialEnd             DateTime?
   
   // Usage limits (cached for performance)
   reviewsLimit         Int      @default(50)
   repositoriesLimit    Int      @default(1)
   teamMembersLimit     Int      @default(1)
+  apiCallsLimit        Int      @default(1000)
+  webhooksLimit        Int      @default(0)
+  customPromptsLimit   Int      @default(0)
+  storageGBLimit       Int      @default(1)
   
   // Timestamps
   createdAt           DateTime @default(now())
@@ -153,7 +283,7 @@ model Subscription {
   @@index([plan])
   @@index([status])
   @@index([currentPeriodEnd])
-  @@map("subscriptions")
+  @@map("subscription")
 }
 
 model Invoice {
@@ -183,7 +313,7 @@ model Invoice {
   @@index([subscriptionId])
   @@index([status])
   @@index([paidAt])
-  @@map("invoices")
+  @@map("invoice")
 }
 
 model UsageRecord {
@@ -203,7 +333,7 @@ model UsageRecord {
 
   @@index([subscriptionId, metric])
   @@index([timestamp])
-  @@map("usage_records")
+  @@map("usageRecord")
 }
 
 // ===========================
@@ -241,7 +371,7 @@ model GitHubInstallation {
   @@index([userId])
   @@index([accountLogin])
   @@index([isActive])
-  @@map("github_installations")
+  @@map("gitHubInstallation")
 }
 
 model Repository {
@@ -292,7 +422,7 @@ model Repository {
   @@index([isActive])
   @@index([language])
   @@index([updatedAt])
-  @@map("repositories")
+  @@map("repository")
 }
 
 // ===========================
@@ -347,7 +477,7 @@ model PullRequest {
   @@index([state])
   @@index([authorLogin])
   @@index([githubUpdatedAt])
-  @@map("pull_requests")
+  @@map("pullRequest")
 }
 
 model Review {
@@ -403,7 +533,7 @@ model Review {
   @@index([overallScore])
   @@index([createdAt])
   @@index([pullRequestNumber, repositoryId])
-  @@map("reviews")
+  @@map("review")
 }
 
 model Issue {
@@ -449,7 +579,7 @@ model Issue {
   @@index([severity])
   @@index([category])
   @@index([fileName])
-  @@map("issues")
+  @@map("issue")
 }
 
 model Suggestion {
@@ -483,26 +613,8 @@ model Suggestion {
   @@index([reviewId])
   @@index([type])
   @@index([priority])
-  @@map("suggestions")
+  @@map("suggestion")
 }
-
-
-
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
- 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
-  @@id([userId, credentialID])
-}
-
 
 model Comment {
   id               String   @id @default(cuid())
@@ -532,11 +644,11 @@ model Comment {
   @@index([reviewId])
   @@index([pullRequestId])
   @@index([githubCommentId])
-  @@map("comments")
+  @@map("comment")
 }
 
 // ===========================
-// TEAM COLLABORATION
+// TEAM COLLABORATION (Updated)
 // ===========================
 
 model Team {
@@ -544,9 +656,9 @@ model Team {
   ownerId      String
   
   // Team details
-  name         String?
+  name         String
   description  String?
-  slug         String?   @unique
+  slug         String   @unique
   
   // Team settings
   isActive     Boolean  @default(true)
@@ -556,14 +668,14 @@ model Team {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  owner        User?     @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User     @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      TeamMember[]
   repositories TeamRepository[]
   invitations  TeamInvitation[]
 
   @@index([ownerId])
   @@index([slug])
-  @@map("teams")
+  @@map("team")
 }
 
 model TeamMember {
@@ -585,7 +697,7 @@ model TeamMember {
   @@unique([teamId, userId])
   @@index([teamId])
   @@index([userId])
-  @@map("team_members")
+  @@map("teamMember")
 }
 
 model TeamRepository {
@@ -608,7 +720,7 @@ model TeamRepository {
   @@unique([teamId, repositoryId])
   @@index([teamId])
   @@index([repositoryId])
-  @@map("team_repositories")
+  @@map("teamRepository")
 }
 
 model TeamInvitation {
@@ -636,7 +748,7 @@ model TeamInvitation {
   @@index([email])
   @@index([token])
   @@index([status])
-  @@map("team_invitations")
+  @@map("teamInvitation")
 }
 
 // ===========================
@@ -674,7 +786,7 @@ model ApiKey {
   @@index([userId])
   @@index([keyHash])
   @@index([isActive])
-  @@map("api_keys")
+  @@map("apiKey")
 }
 
 model Webhook {
@@ -703,7 +815,7 @@ model Webhook {
 
   @@index([userId])
   @@index([isActive])
-  @@map("webhooks")
+  @@map("webhook")
 }
 
 model WebhookDelivery {
@@ -736,7 +848,7 @@ model WebhookDelivery {
   @@index([webhookId])
   @@index([status])
   @@index([createdAt])
-  @@map("webhook_deliveries")
+  @@map("webhookDelivery")
 }
 
 // ===========================
@@ -772,7 +884,7 @@ model AuditLog {
   @@index([action])
   @@index([entity])
   @@index([createdAt])
-  @@map("audit_logs")
+  @@map("auditLog")
 }
 
 model Notification {
@@ -805,7 +917,7 @@ model Notification {
   @@index([type])
   @@index([isRead])
   @@index([createdAt])
-  @@map("notifications")
+  @@map("notification")
 }
 
 model SystemMetric {
@@ -822,7 +934,7 @@ model SystemMetric {
 
   @@index([name])
   @@index([timestamp])
-  @@map("system_metrics")
+  @@map("systemMetric")
 }
 
 // ===========================
@@ -838,10 +950,12 @@ enum Plan {
 
 enum SubscriptionStatus {
   ACTIVE
-  CANCELLED
-  PAST_DUE
-  UNPAID
+  CANCELED
   INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAST_DUE
+  TRIALING
+  UNPAID
 }
 
 enum InvoiceStatus {
@@ -857,6 +971,9 @@ enum UsageMetric {
   API_CALLS
   TEAM_MEMBERS
   REPOSITORIES
+  WEBHOOKS
+  CUSTOM_PROMPTS
+  STORAGE_GB
 }
 
 enum AccountType {
@@ -934,6 +1051,13 @@ enum TeamRole {
   VIEWER
 }
 
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -981,6 +1105,7 @@ enum AuditEntity {
   REPOSITORY
   REVIEW
   TEAM
+  ORGANIZATION
   SUBSCRIPTION
   API_KEY
   WEBHOOK
@@ -991,6 +1116,7 @@ enum NotificationType {
   CRITICAL_ISSUE_FOUND
   SUBSCRIPTION_EXPIRING
   TEAM_INVITATION
+  ORGANIZATION_INVITATION
   SYSTEM_ALERT
 }
 
@@ -999,4 +1125,10 @@ enum NotificationChannel {
   IN_APP
   WEBHOOK
   SLACK
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
 }
