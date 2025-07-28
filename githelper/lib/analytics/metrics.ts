@@ -1,5 +1,5 @@
 
-import prisma  from '../db/client'
+import {prisma}  from '../db/client'
 import { redis } from '../cache/redis'
 import { logger } from '../utils/logger'
 
@@ -1030,7 +1030,7 @@ export class EventTracker {
           AND JSON_EXTRACT(newValues, '$.type') IS NOT NULL
         GROUP BY type
         ORDER BY count DESC
-      `
+      
 
       return stats.reduce((acc: { [x: string]: number }, stat: { type: string | number; count: any }) => {
         acc[stat.type] = Number(stat.count)
