@@ -1,0 +1,131 @@
+# # AUTH_SECRET="vZApAHoiJmZYLFWIcf3cQcLZh9DWEiuQz4s+QTwzldE=" # Added by `npx auth`. Read more: https://cli.authjs.dev
+
+
+# # Connect to Supabase via connection pooling
+# DATABASE_URL="postgresql://postgres.vujvripwsjotquvlcvau:ROjpchdaZWBovjwb@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# # Direct connection to the database. Used for migrations
+# DIRECT_URL="postgresql://postgres.vujvripwsjotquvlcvau:ROjpchdaZWBovjwb@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
+# # GITHUB_CLIENT_ID="Iv23liegdPlqC9fGO6pj"
+# GITHUB_CLIENT_ID="Ov23liMphZUspanpgeyx"
+# GITHUB_CLIENT_SECRET="a8cbcdcb811296452710ef710857b72afbb58682"
+# # GITHUB_CLIENT_SECRET="e5dad1995a7815e188996efd4e707af3c0bfc1c3"
+# # GITHUB_WEBHOOK_SECRET=your_webhook_secret
+# OPENAI_API_KEY=your_openai_key
+# STRIPE_SECRET_KEY=your_stripe_secret
+# STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+# NEXTAUTH_SECRET="3b5f6ac5-0de2-434a-92bf-1f54f700bf82"
+# NEXTAUTH_URL="http://localhost:3000"
+
+# # SCRUBBE = ZYqtSNm4nghlAAID
+
+# # wdv88p0QL1SvvVUH
+
+# # Connect to Supabase via connection pooling
+# # DATABASE_URL="postgresql://postgres.husowxzpqxtpykrrxqzn:wdv88p0QL1SvvVUH@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+# # postgresql://ot4log:xau_JaXBPZNqtN83YEMNe43aqCCV0U9SGKAO@eu-central-1.sql.xata.sh/scrubbe_db:main?sslmode=require
+
+
+# # # Direct connection to the database. Used for migrations
+# # DIRECT_URL="postgresql://postgres.husowxzpqxtpykrrxqzn:wdv88p0QL1SvvVUH@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
+# # postgresql://ot4log:xau_JaXBPZNqtN83YEMNe43aqCCV0U9SGKAO@eu-central-1.sql.xata.sh/scrubbe_db:main?sslmode=require
+
+
+
+
+
+# # GITHELPER ENVIRONMENT VARIABLES
+# # ===========================
+# # ROjpchdaZWBovjwb
+
+# # AUTHENTICATION CONFIGURATION
+# # ===========================
+
+# # NextAuth.js Configuration
+# # NEXTAUTH_URL=http://localhost:3000
+# # NEXTAUTH_SECRET=your-super-secret-nextauth-secret-key-here
+
+# # GitHub OAuth Application
+# # GITHUB_CLIENT_ID=your-github-oauth-app-client-id
+# # GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
+
+# # GitHub App Configuration (for repository access)
+# # GITHUB_APP_ID=your-github-app-id
+# # GITHUB_APP_NAME=your-github-app-name
+# # GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+# # your-github-app-private-key-here
+# # -----END RSA PRIVATE KEY-----"
+
+# # Webhook Secret for GitHub
+# # GITHUB_WEBHOOK_SECRET=your-github-webhook-secret
+
+# # ===========================
+# # DATABASE CONFIGURATION
+# # ===========================
+
+# # PostgreSQL Database URL
+# # DATABASE_URL="postgresql://username:password@localhost:5432/devteams_copilot?schema=public"
+# # 
+# # ===========================
+# # SECURITY & ENCRYPTION
+# # ===========================
+
+# # Encryption key for sensitive data
+# ENCRYPTION_KEY=your-32-character-encryption-key-here
+
+# # Admin emails (comma-separated)
+# ADMIN_EMAILS=admin@devteamscopilot.com,owner@company.com
+
+# # ===========================
+# # EXTERNAL SERVICES
+# # ===========================
+
+# # OpenAI API Key for AI Reviews
+# # OPENAI_API_KEY=your-openai-api-key
+
+# # Stripe Configuration for Payments
+# # STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+# # STRIPE_WEBHOOK_SECRET=whsec_your-stripe-webhook-secret
+
+# # Email Service (Resend)
+# RESEND_API_KEY=re_your-resend-api-key
+
+# # Redis for Caching (optional)
+# REDIS_URL=redis://localhost:6379
+
+# # ===========================
+# # APPLICATION CONFIGURATION
+# # ===========================
+
+# # Environment
+# NODE_ENV=development
+
+# # Logging Level
+# LOG_LEVEL=debug
+
+# # Rate Limiting
+# RATE_LIMIT_ENABLED=true
+# MAX_REQUESTS_PER_WINDOW=100
+# RATE_LIMIT_WINDOW_MS=900000
+
+
+# BETTER_AUTH_SECRET="3b5f6ac5-0de2-434a-92bf-1f54f700bf82"
+
+# # NEXTAUTH_URL=
+# # NEXTAUTH_SECRET=
+
+# # AUTH_GOOGLE_ID=
+# # AUTH_GOOGLE_SECRET=
+
+
+# BETTER_AUTH_URL="http://localhost:3000" #Base URL of your app
+
+# # AUTH_DISCORD_ID=
+# # AUTH_DISCORD_SECRET=
+
+# # AUTH_AUTH0_ID=
+# # AUTH_AUTH0_SECRET=
+# # AUTH_AUTH0_ISSUER=
+
+# # AUTH_HASURA_GRAPHQL=
+# # AUTH_HASURA_SECRET=

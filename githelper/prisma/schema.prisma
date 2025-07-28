@@ -204,6 +204,23 @@ model OrganizationInvitation {
   @@map("organizationInvitation")
 }
 
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@index([identifier])
+  @@index([value])
+  @@map("verification")
+}
+
+
+
 // ===========================
 // USER PREFERENCES & SETTINGS
 // ===========================

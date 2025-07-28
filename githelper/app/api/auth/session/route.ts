@@ -1,6 +1,6 @@
 // app/api/auth/session/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession, getServerUser } from "@/lib/auth/utils"
+import { getServerSession, getServerUser } from "@/lib/auth/better-utils"
 import { logger } from "@/lib/utils/logger"
 
 export async function GET(request: NextRequest) {
