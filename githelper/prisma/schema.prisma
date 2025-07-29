@@ -17,59 +17,65 @@ datasource db {
 // BETTER-AUTH CORE TABLES
 // ===========================
 
+
+
+
+
+
+
+
+// ===========================
+// BETTER AUTH MODELS (Fixed)
+// ===========================
+
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  emailVerified     DateTime?
-  name              String?
-  image             String?
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
   
-  // GitHub integration
-  githubId          Int?      @unique
-  githubUsername    String?   @unique
-  
-  // Better-Auth specific fields
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  // GitHub specific fields
+  githubId      String?   @unique
+  githubUsername String?  @unique
   
   // Usage tracking
-  reviewsUsed       Int       @default(0)
-  lastReviewAt      DateTime?
-  lastLoginAt       DateTime?
-  emailNotifications Boolean  @default(true)
+  reviewsUsed   Int       @default(0)
+  lastReviewAt  DateTime?
+  lastLoginAt   DateTime?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Relations
-  accounts          Account[]
-  sessions          Session[]
-  subscription      Subscription?
-  repositories      Repository[]
-  reviews           Review[]       @relation("ReviewOwner")
-  ownedTeams        Team[]         @relation("TeamOwner")
-  teamMemberships   TeamMember[]
-  installations     GitHubInstallation[]
-  apiKeys           ApiKey[]
-  auditLogs         AuditLog[]
-  notifications     Notification[]
-  
-  // Better-Auth relations
-  authenticators    Authenticator[]
-  preferences       UserPreferences?
+  accounts              Account[]
+  sessions              Session[]
+  repositories          Repository[]
+  reviews               Review[]
+  subscription          Subscription?
+  preferences           UserPreferences?
+  gitHubInstallations   GitHubInstallation[]
   organizationMemberships OrganizationMembership[]
-  ownedOrganizations      Organization[] @relation("OrganizationOwner")
 
-  @@index([email])
-  @@index([githubId])
-  @@index([githubUsername])
-  @@index([createdAt])
-  @@map("user")
+  @@map("users")
+  AuditLog AuditLog[]
+  ApiKey ApiKey[]
+  Team Team[] @relation("TeamOwner")
+  TeamMember TeamMember[]
+  Notification Notification[]
+  Review Review[] @relation("ReviewOwner")
+  Organization Organization[] @relation("OrganizationOwner")
+  Authenticator Authenticator[]
 }
 
+// Fixed Account model - removed accountId, using providerAccountId
 model Account {
   id                String  @id @default(cuid())
   userId            String
-  type              String
-  provider          String
-  providerAccountId String
+  type              String?
+  provider          String?
+  providerAccountId String?  // This is the correct field name for Better Auth
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
@@ -78,15 +84,13 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
   
-  // Better-Auth specific fields
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@index([userId])
-  @@map("account")
+  @@map("accounts")
 }
 
 model Session {
@@ -94,25 +98,35 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  
-  // Better-Auth specific fields
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@map("session")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model VerificationToken {
+  id         String   @id @default(cuid())
   identifier String
   token      String   @unique
   expires    DateTime
+  createdAt  DateTime @default(now())
 
   @@unique([identifier, token])
-  @@map("verificationToken")
+  @@map("verification_tokens")
 }
+
+// ===========================
+// ENUMS
+// ===========================
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
 
 model Authenticator {
   credentialID         String  @unique
@@ -551,6 +565,7 @@ model Review {
   @@index([createdAt])
   @@index([pullRequestNumber, repositoryId])
   @@map("review")
+  User User[]
 }
 
 model Issue {
@@ -1149,3 +1164,39 @@ enum Theme {
   DARK
   SYSTEM
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

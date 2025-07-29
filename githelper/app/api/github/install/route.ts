@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import  prisma  from '@/lib/db/client'
+import  { prisma }  from '@/lib/db/client'
 import { Octokit } from '@octokit/rest'
 import { createAppAuth } from '@octokit/auth-app'
-import { AccountType } from '@/src/app/generated/prisma'
+import { getServerSession } from '@/lib/auth/better-utils'
+import { AccountType } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {

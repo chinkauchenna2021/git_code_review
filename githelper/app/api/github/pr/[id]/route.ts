@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { Octokit } from '@octokit/rest'
 import { analyzePullRequest } from '@/lib/ai/review-engine'
+import { getServerSession } from '@/lib/auth/better-utils'
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession()
-    if (!session?.githubAccessToken) {
+    if (!session?.session.token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -22,7 +22,7 @@ export async function GET(
     }
 
     const octokit = new Octokit({
-      auth: session.githubAccessToken
+      auth: session.session.token
     })
 
     // Get PR details

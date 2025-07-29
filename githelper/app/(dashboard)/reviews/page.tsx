@@ -1,4 +1,3 @@
-// app/(dashboard)/reviews/page.tsx - Part 1
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -98,7 +97,7 @@ type TimeRange = '24h' | '7d' | '30d' | '90d' | 'all'
 export default function ReviewsPage() {
   const { user } = useAuth()
   const searchParams = useSearchParams()
-  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviews, setReviews] = useState<Review[] | any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -219,7 +218,7 @@ export default function ReviewsPage() {
         reviews.filter(r => r.aiAnalysis?.overallScore).length
       : 0,
     criticalIssues: reviews.reduce((sum, r) => 
-      sum + (r.aiAnalysis?.issues?.filter(i => i.severity === 'critical').length || 0), 0
+      sum + (r.aiAnalysis?.issues?.filter((i: { severity: string }) => i.severity === 'critical').length || 0), 0
     ),
     averageProcessingTime: reviews.filter(r => r.processingTime).length > 0
       ? reviews.reduce((sum, r) => sum + (r.processingTime || 0), 0) / 
